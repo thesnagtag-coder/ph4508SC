@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>The Hidden Leak Check - Beneath the Surface by The Snag Tag</title>
+<meta name="description" content="8 real plumbing and hidden leak checks, including the EPA meter and toilet dye tests, for home buyers or home owners. Free, 5 minutes, no signup - from The Snag Tag.">
+<style>
+:root{
+  --accent:#0F766E; --accent-dark:#2D5B9A; --accent-rgb:15,118,110;
+}
+body[data-mode="light"], body{
+  --bg:#F7FAFD; --surface:#FFFFFF; --surface-2:#E8F0FA; --tile:#F7FAFD;
+  --ink:#16243F; --ink-mid:#44546F; --ink-soft:#6B7A93; --line:#C9D6E8;
+  --navy:#16243F; --navy-2:#1E3154;
+  --safe:#2E7D4F; --safe-bg:#E7F5EC;
+  --flag:#A15C00; --flag-bg:#FFF3E0;
+  --grid:rgba(45,91,154,.06);
+}
+body[data-mode="dark"]{
+  --bg:#0F1A2C; --surface:#15233A; --surface-2:#1C3150; --tile:#122036;
+  --ink:#E6EEF9; --ink-mid:#B8C6DB; --ink-soft:#8C9BB2; --line:#2F4466;
+  --navy:#0B1424; --navy-2:#0F1A2C;
+  --safe:#81C995; --safe-bg:#1B3326;
+  --flag:#FFB74D; --flag-bg:#3A2C17;
+  --grid:rgba(140,180,230,.06);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:24px 24px;
+  font-family:"Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+  font-size:16px; line-height:1.55; -webkit-font-smoothing:antialiased;
+  transition:background .25s,color .25s;
+}
+h1,h2,h3,h4{margin:0}
+.mono{font-family:ui-monospace,"SFMono-Regular","Cascadia Mono","Roboto Mono",Consolas,monospace}
+::selection{background:rgba(var(--accent-rgb),.35)}
+button{font-family:inherit}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+
+.topbar{
+  background:var(--navy); color:#fff; border-bottom:3px solid var(--accent);
+  padding:12px 18px; display:flex; align-items:center; justify-content:space-between;
+  position:sticky; top:0; z-index:20;
+}
+.topbar-left{display:flex; align-items:center; gap:10px}
+.topbar-logo{width:32px;height:32px;border-radius:6px;border:1.5px solid var(--accent);display:flex;align-items:center;justify-content:center;flex:none}
+.topbar-logo svg{width:18px;height:18px}
+.topbar-name{font-weight:700; font-size:16px; letter-spacing:-.2px}
+.topbar-name span{color:#5EEAD4}
+.topbar-sub{font-size:11px; color:rgba(255,255,255,.65); font-weight:500; letter-spacing:.06em; text-transform:uppercase}
+.topbar-tools{display:flex; gap:6px}
+.tool-btn{background:rgba(255,255,255,.09); border:1px solid rgba(255,255,255,.2); color:#fff; border-radius:6px; padding:7px 10px; font-size:13px; cursor:pointer; font-weight:600; display:flex; align-items:center; gap:5px}
+.tool-btn:hover{background:rgba(255,255,255,.17)}
+
+.progress-wrap{position:sticky; top:59px; z-index:19; background:var(--bg); padding:10px 18px 8px; border-bottom:1px solid var(--line)}
+.progress-track{height:6px; background:var(--surface-2); border-radius:99px; overflow:hidden; max-width:640px; margin:0 auto}
+.progress-fill{height:100%; background:linear-gradient(90deg,var(--accent),var(--accent-dark)); border-radius:99px; transition:width .35s ease; width:0%}
+.progress-label{max-width:640px; margin:6px auto 0; font-size:12px; color:var(--ink-soft); font-weight:600; display:flex; justify-content:space-between}
+
+main{max-width:640px; margin:0 auto; padding:28px 20px 90px}
+.screen{display:none; animation:fade .35s ease}
+.screen.active{display:block}
+@keyframes fade{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:translateY(0)}}
+
+.hook-badge{display:inline-flex; align-items:center; gap:6px; background:var(--surface); border:1px solid var(--line); color:var(--accent-dark); font-weight:700; font-size:12.5px; padding:5px 12px; border-radius:99px; margin-bottom:18px}
+body[data-mode="dark"] .hook-badge{color:#8CB4E6}
+.hook h1{font-size:clamp(1.7rem,6vw,2.3rem); line-height:1.15; margin-bottom:14px}
+.hook h1 em{font-style:normal; color:var(--accent)}
+.hook p.lede{font-size:1.05rem; color:var(--ink-mid); margin-bottom:22px}
+.hook-facts{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:26px}
+.hook-fact{background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:14px 10px; text-align:center}
+.hook-fact .n{font-size:1.4rem; font-weight:700; color:var(--accent)}
+.hook-fact .t{font-size:11.5px; color:var(--ink-soft); font-weight:600; margin-top:2px}
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  border-radius:10px; padding:15px 22px; font-size:16px; font-weight:700; cursor:pointer;
+  border:none; width:100%; text-align:center; text-decoration:none;
+}
+.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent-dark)); color:#fff; box-shadow:0 4px 14px rgba(var(--accent-rgb),.3)}
+.btn-primary:hover{filter:brightness(1.07)}
+.btn-ghost{background:var(--surface); color:var(--ink); border:1.5px solid var(--line)}
+.btn-ghost:hover{border-color:var(--accent)}
+.hint-row{display:flex; align-items:center; gap:8px; margin-top:14px; font-size:13px; color:var(--ink-soft); justify-content:center; text-align:center}
+
+.choose-card{background:var(--surface); border:1.5px solid var(--line); border-radius:12px; padding:18px 18px; margin-bottom:12px; cursor:pointer; transition:border-color .15s}
+.choose-card:hover{border-color:var(--accent)}
+.choose-card .cc-label{font-size:1.1rem; font-weight:700; margin-bottom:3px}
+.choose-card .cc-range{font-size:13px; color:var(--ink-soft); font-weight:600}
+
+.zone-chip{display:inline-flex; align-items:center; gap:6px; background:var(--surface); border:1px solid var(--line); color:var(--ink-mid); font-weight:700; font-size:11.5px; text-transform:uppercase; letter-spacing:.06em; padding:5px 11px; border-radius:99px; margin-bottom:16px}
+.zone-chip .dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+
+.check-card{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:24px 22px; box-shadow:0 2px 12px rgba(22,36,63,.06)}
+.check-card .verb{font-size:12.5px; font-weight:700; color:var(--accent); text-transform:uppercase; letter-spacing:.08em; margin-bottom:8px}
+.check-card h2{font-size:1.35rem; line-height:1.3; margin-bottom:10px}
+.check-card .prompt{font-size:1rem; color:var(--ink-mid); margin-bottom:20px}
+.check-card .prompt strong{color:var(--ink)}
+.opts{display:flex; flex-direction:column; gap:10px; margin-bottom:4px}
+.opt{
+  display:flex; align-items:center; gap:12px; background:var(--tile); border:1.5px solid var(--line);
+  border-radius:10px; padding:14px 16px; cursor:pointer; font-size:15px; font-weight:600; color:var(--ink);
+  transition:border-color .15s, background .15s;
+}
+.opt:hover{border-color:var(--accent)}
+.opt .ic{width:22px;height:22px;border-radius:50%;border:2px solid var(--line); flex:none; display:flex;align-items:center;justify-content:center; font-size:13px; font-weight:800; color:transparent}
+.opt.selected{border-color:var(--accent-dark)}
+.opt.selected.safe{background:var(--safe-bg); border-color:var(--safe)}
+.opt.selected.safe .ic{border-color:var(--safe); color:var(--safe)}
+.opt.selected.flag{background:var(--flag-bg); border-color:var(--flag)}
+.opt.selected.flag .ic{border-color:var(--flag); color:var(--flag)}
+.change-hint{font-size:12.5px; color:var(--ink-soft); margin:10px 0 0}
+
+.reveal{margin-top:18px; border-radius:10px; padding:16px 18px; border-left:4px solid var(--accent-dark); background:var(--surface-2); display:none}
+.reveal.show{display:block; animation:fade .3s ease}
+.reveal .rk{font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--accent-dark); margin-bottom:6px}
+.reveal.good{border-left-color:var(--safe); background:var(--safe-bg)}
+.reveal.good .rk{color:var(--safe)}
+.reveal.bad{border-left-color:var(--flag); background:var(--flag-bg)}
+.reveal.bad .rk{color:var(--flag)}
+.reveal p{margin:0 0 8px; font-size:14.5px; color:var(--ink-mid)}
+.reveal p:last-child{margin-bottom:0}
+.reveal .src{font-size:12.5px; color:var(--ink-soft); font-style:italic}
+
+.nav-row{display:flex; gap:10px; margin-top:22px}
+.nav-row .btn{flex:1}
+.nav-back{background:transparent; color:var(--ink-soft); border:none; font-size:13px; font-weight:600; cursor:pointer; padding:8px; margin-top:10px; width:100%; text-align:center}
+
+.result-head{text-align:center; margin-bottom:24px}
+.result-head .kicker{font-size:12.5px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-soft)}
+.result-head h1{font-size:1.8rem; margin:8px 0 4px}
+.result-stats{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:22px 0 26px}
+.rstat{background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:16px 8px; text-align:center}
+.rstat .n{font-size:1.9rem; font-weight:700}
+.rstat.total .n{color:var(--ink)}
+.rstat.safe .n{color:var(--safe)}
+.rstat.flag .n{color:var(--flag)}
+.rstat .t{font-size:11.5px; color:var(--ink-soft); font-weight:600; margin-top:2px}
+
+.zone-bars{display:flex; flex-direction:column; gap:10px; margin-bottom:26px}
+.zbar-row{display:flex; align-items:center; gap:10px}
+.zbar-label{width:132px; flex:none; font-size:12.5px; font-weight:600; color:var(--ink-mid); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.zbar-track{flex:1; height:9px; background:var(--surface-2); border-radius:99px; overflow:hidden}
+.zbar-fill{height:100%; border-radius:99px; background:var(--safe)}
+.zbar-fill.partial{background:var(--flag)}
+.zbar-count{width:38px; flex:none; text-align:right; font-size:12.5px; font-weight:700; color:var(--ink-soft)}
+
+.section-h{font-size:12.5px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-soft); margin:26px 0 12px}
+.finding{display:flex; gap:12px; padding:13px 0; border-bottom:1px solid var(--line)}
+.finding:last-child{border-bottom:none}
+.finding .fic{width:26px;height:26px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800}
+.finding.flag .fic{background:var(--flag-bg); color:var(--flag)}
+.finding.safe .fic{background:var(--safe-bg); color:var(--safe)}
+.finding .ft{font-weight:700; font-size:14.5px; margin-bottom:2px}
+.finding .fd{font-size:13.5px; color:var(--ink-soft); line-height:1.5}
+
+.quickwin{background:var(--surface); border:1.5px solid var(--accent); border-radius:14px; padding:20px; margin:8px 0 26px}
+.quickwin .qk{display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--accent); margin-bottom:8px}
+.quickwin h3{font-size:1.1rem; margin-bottom:8px}
+.quickwin p{font-size:14.5px; color:var(--ink-mid); margin:0}
+
+.bridge{background:var(--navy); border-top:3px solid var(--accent); color:#fff; border-radius:14px; padding:26px 22px; margin:10px 0 20px}
+.bridge .bk{font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:#5EEAD4}
+.bridge h3{font-size:1.4rem; margin:8px 0 12px; line-height:1.3}
+.bridge p{font-size:14.5px; color:rgba(255,255,255,.82); margin:0 0 14px}
+.bridge .still{background:rgba(255,255,255,.07); border-radius:10px; padding:14px 16px; margin:14px 0}
+.bridge .still h4{font-size:12.5px; text-transform:uppercase; letter-spacing:.04em; color:rgba(255,255,255,.6); margin-bottom:8px}
+.bridge .still ul{margin:0; padding-left:18px; font-size:13.5px; color:rgba(255,255,255,.85)}
+.bridge .still li{margin-bottom:5px}
+.bridge .btn-primary{margin-top:6px}
+.bridge .note{font-size:11.5px; color:rgba(255,255,255,.5); margin-top:10px; text-align:center}
+
+.restart-row{text-align:center; margin-top:8px}
+.restart-row button{background:none; border:none; color:var(--ink-soft); font-size:13px; font-weight:600; text-decoration:underline; cursor:pointer}
+
+.disclaimer{font-size:12px; color:var(--ink-soft); text-align:center; margin-top:30px; padding-top:18px; border-top:1px solid var(--line); line-height:1.6}
+</style>
+</head>
+<body data-mode="light">
+
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="topbar-logo"><svg viewBox="0 0 24 24" fill="none" stroke="#5EEAD4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h9a3 3 0 0 1 3 3v2"/><path d="M4 5v4"/><path d="M14 12h4"/><path d="M16 15.5c-1 1.3-1.5 2.1-1.5 2.8a1.5 1.5 0 0 0 3 0c0-.7-.5-1.5-1.5-2.8z"/></svg></span>
+    <div>
+      <div class="topbar-name">Beneath the <span>Surface</span></div>
+      <div class="topbar-sub">by The Snag Tag &middot; Hidden Leak Check</div>
+    </div>
+  </div>
+  <div class="topbar-tools">
+    <button class="tool-btn" id="modeToggle" type="button" aria-label="Toggle dark mode">🌙</button>
+  </div>
+</div>
+
+<div class="progress-wrap" id="progressWrap" style="display:none">
+  <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+  <div class="progress-label"><span id="progressText">Check 1</span><span id="progressPct">0%</span></div>
+</div>
+
+<main>
+
+  <section class="screen active" id="screen-hook">
+    <div class="hook">
+      <span class="hook-badge">💧 For home buyers and home owners</span>
+      <h1>Find the leak <em>you can't see.</em></h1>
+      <p class="lede">Real checks, pulled from The Snag Tag's Beneath the Surface Plumbing &amp; Hidden Leaks tool, including two simple leak tests from US EPA. Nothing to open or repair. No signup, no scare tactics.</p>
+      <div class="hook-facts">
+        <div class="hook-fact"><div class="n">8</div><div class="t">real checks</div></div>
+        <div class="hook-fact"><div class="n">~5</div><div class="t">minutes</div></div>
+        <div class="hook-fact"><div class="n">Free</div><div class="t">to start</div></div>
+      </div>
+      <button class="btn btn-primary" id="startBtn" type="button">Start the Check &rarr;</button>
+      <div class="hint-row">Free. No account. Your answers stay on this device.</div>
+    </div>
+  </section>
+
+  <section class="screen" id="screen-choose">
+    <div class="hook">
+      <h1 style="font-size:1.6rem">Which fits you right now?</h1>
+      <p class="lede" style="margin-bottom:20px">This decides which real checks you'll see today. Pick the one that fits.</p>
+      <div class="choose-card" data-key="buyer"><div class="cc-label">I'm viewing or buying a home</div><div class="cc-range">Pre-Purchase checks</div></div>
+      <div class="choose-card" data-key="owner"><div class="cc-label">I live in or look after a home</div><div class="cc-range">Maintenance checks for owners, tenants and landlords</div></div>
+    </div>
+  </section>
+
+  <section class="screen" id="screen-check">
+    <span class="zone-chip"><span class="dot"></span><span id="chkZone">Zone</span></span>
+    <div class="check-card">
+      <div class="verb" id="chkVerb">Check</div>
+      <h2 id="chkTitle"></h2>
+      <p class="prompt" id="chkPrompt"></p>
+      <div class="opts" id="chkOpts"></div>
+      <p class="change-hint">Pick either one. You can change your answer any time before you move on.</p>
+      <div class="reveal" id="chkReveal">
+        <div class="rk" id="revealKicker">Here's what actually matters</div>
+        <p id="revealWhy"></p>
+        <p id="revealHow"></p>
+        <p class="src" id="revealSrc"></p>
+      </div>
+      <div class="nav-row" id="chkNavRow" style="display:none">
+        <button class="btn btn-primary" id="chkNextBtn" type="button">Next check &rarr;</button>
+      </div>
+    </div>
+    <button class="nav-back" id="chkBackBtn" type="button">&larr; back</button>
+    <button class="nav-back" id="chkChooseBtn" type="button" style="opacity:.65">Choose a different check</button>
+  </section>
+
+  <section class="screen" id="screen-result">
+    <div class="result-head">
+      <div class="kicker">Your Hidden Leak Check</div>
+      <h1 id="resultHeadline">Here's what you found</h1>
+    </div>
+
+    <div class="result-stats">
+      <div class="rstat total"><div class="n" id="statTotal">0</div><div class="t">checked today</div></div>
+      <div class="rstat safe"><div class="n" id="statSafe">0</div><div class="t">already sorted</div></div>
+      <div class="rstat flag"><div class="n" id="statFlag">0</div><div class="t">need attention</div></div>
+    </div>
+
+    <div class="zone-bars" id="zoneBars"></div>
+
+    <div class="section-h">What to check today</div>
+    <div id="findingsFlag"></div>
+
+    <div class="section-h">Already sorted</div>
+    <div id="findingsSafe"></div>
+
+    <div class="quickwin" id="quickwin">
+      <div class="qk">&#9889; Quick win - do this now, free</div>
+      <h3 id="qwTitle"></h3>
+      <p id="qwBody"></p>
+    </div>
+
+    <div class="bridge">
+      <div class="bk">The complete system</div>
+      <h3 id="bridgeHeadline">You found the gaps. Here's what closes them.</h3>
+      <p id="bridgeBody"></p>
+      <div class="still" id="bridgeStill">
+        <h4>Today's check opened part of the picture. Here's what's still closed:</h4>
+        <ul id="bridgeStillList"></ul>
+      </div>
+      <a class="btn btn-primary" id="proBtn" href="#" target="_blank" rel="noopener">Get the complete tool &rarr;</a>
+      <div class="note">One-time purchase. Works offline, on any device, no subscription.</div>
+      <button class="btn btn-ghost" id="saveResultsBtn" type="button" style="margin-top:12px;background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.25);color:#fff">Not ready yet? Save my results instead &rarr;</button>
+      <div class="note">Downloads a copy of exactly what you found today, free, no email needed. Nothing here disappears, but nothing reminds you either, so keep it somewhere you'll see it.</div>
+    </div>
+
+    <div class="restart-row"><button id="restartBtn" type="button">&#8634; Start the check again</button></div>
+
+    <div class="disclaimer">This is educational general guidance from The Snag Tag, a NEBOSH &amp; OSHA trained HSE professional. It is not a plumbing inspection and does not locate hidden leaks precisely. Never open, dismantle or repair plumbing, water heaters or valves: that is work for a licensed plumber. Rules differ between countries, so always check local requirements.</div>
+  </section>
+
+</main>
+
+<script>
+/* ============================================================
+   SET YOUR GUMROAD LINK HERE (one place, used everywhere)
+   ============================================================ */
+const GUMROAD_URL = "https://snagtag.gumroad.com/l/BTS_PlumbingLeaks_PRO";
+
+const PRODUCTS = {
+  "buyer": {
+    "label": "Pre-Purchase",
+    "ageRange": "Viewing or buying a home",
+    "accent": "#0F766E",
+    "accentDark": "#2D5B9A",
+    "checks": [
+      {
+        "zone": "Under the Sinks",
+        "verb": "At the viewing",
+        "title": "Did you open the cupboards under the sinks?",
+        "prompt": "Pipe joints and traps under sinks are a classic <strong>slow-leak</strong> spot nobody looks at.",
+        "yes": "Yes, and they were dry",
+        "no": "No, or they weren't dry",
+        "why": "Leaking or condensing water pipes are a common moisture source, and a slow leak under a sink can go unnoticed for a long time.",
+        "how": "With permission, open each sink cupboard. Look for a swollen or stained base board, water marks, rust on fittings or a damp smell. Photograph anything you find and ask whether there has been a leak.",
+        "standard": "US EPA: leaking or condensing water pipes are a common moisture source. Fix plumbing leaks as soon as possible.",
+        "tip": "Press gently on the base board. Swollen chipboard feels soft even when it looks fine.",
+        "src": "Source: Beneath the Surface - Plumbing, Fixture Sweep (Under sinks) · US EPA Mold Course, Chapter 2 · US EPA Brief Guide"
+      },
+      {
+        "zone": "Below Wet Rooms",
+        "verb": "At the viewing",
+        "title": "Did you look at the ceiling below the bathroom?",
+        "prompt": "Bathroom leaks often show up <strong>one floor down</strong>, as a stain or bubbling paint.",
+        "yes": "Yes, it looked clean",
+        "no": "No, or I saw marks",
+        "why": "Water from a toilet, shower, bath or pipe can travel and appear as a stain on the ceiling below.",
+        "how": "Look at the ceiling directly below each bathroom and around light fittings. Photograph any stain and note what is above it. Do not touch stained or damp light fittings.",
+        "standard": "US EPA: leaking or condensing water pipes are a common moisture source. US CDC: wet electrical equipment must be inspected by a qualified electrician.",
+        "tip": "One photo of the stain, one of the bathroom above. Together they show a plumber exactly where to start.",
+        "src": "Source: Beneath the Surface - Plumbing, Master Check (Stains below wet rooms) · US EPA Mold Course, Chapter 2 · US CDC Electrical Hazards"
+      },
+      {
+        "zone": "Bathrooms",
+        "verb": "At the viewing",
+        "title": "Did you check whether the toilets rock or leak at the base?",
+        "prompt": "A toilet that moves can leak <strong>under the floor</strong> every time it's flushed.",
+        "yes": "Yes, solid and dry",
+        "no": "No, or it moved",
+        "why": "A loose toilet or a leak at its base can let water into the floor and the ceiling below.",
+        "how": "With permission, gently press the toilet side to side. Look for water, staining or soft flooring around the base. Photograph and record anything you find.",
+        "standard": "InterNACHI: home inspectors report toilet damage, loose floor connections and leaks as in need of correction.",
+        "tip": "Look behind the toilet too. Stains there are easy to miss from the doorway.",
+        "src": "Source: Beneath the Surface - Plumbing, Master Check (Toilet loose or leaking) · InterNACHI Standards of Practice 3.6"
+      },
+      {
+        "zone": "Bathrooms",
+        "verb": "At the viewing",
+        "title": "Did any tap or showerhead drip after it was turned off?",
+        "prompt": "Small drips add up to <strong>thousands of litres</strong> a year.",
+        "yes": "No drips",
+        "no": "Yes, or I didn't check",
+        "why": "Dripping taps and showerheads are among the most common household leaks.",
+        "how": "Watch each tap and showerhead for a minute after it's turned off. Note which ones drip and roughly how many drips per minute. Ask the seller about repairs.",
+        "standard": "US EPA WaterSense: a tap dripping once per second can waste more than 11,356 L (3,000 US gal) a year.",
+        "tip": "Count drips for 60 seconds. A number is far more useful to a plumber than 'it drips a bit'.",
+        "src": "Source: Beneath the Surface - Plumbing, Master Check (Dripping taps) · US EPA WaterSense"
+      },
+      {
+        "zone": "Supply",
+        "verb": "Ask or look",
+        "title": "Do you know where the main water shut-off valve is?",
+        "prompt": "In a burst pipe, finding the shut-off <strong>in seconds</strong> is what limits the damage.",
+        "yes": "Yes, I've seen it",
+        "no": "Not yet",
+        "why": "If you can't find or reach the main shut-off valve, a leak or burst can do far more damage before the water is off.",
+        "how": "Ask the seller or agent to show you the main water shut-off valve. Note where it is, whether it is easy to reach and whether it is labelled. Do not force a stiff valve.",
+        "standard": "InterNACHI: home inspectors inspect the main water supply shut-off valve and describe its location.",
+        "tip": "Take a photo of the valve and its location. It's the first thing you'll want on moving day.",
+        "src": "Source: Beneath the Surface - Plumbing, Master Check (Main shut-off valve) · InterNACHI Standards of Practice 3.6"
+      },
+      {
+        "zone": "Water Heater",
+        "verb": "Look only",
+        "title": "Did you look at the floor around the water heater?",
+        "prompt": "Water, rust or drips around a water heater are <strong>worth a question</strong>.",
+        "yes": "Yes, dry and clean",
+        "no": "No, or I saw water",
+        "why": "Leaks or corrosion around a water heater and its connections can signal a problem that needs a qualified professional.",
+        "how": "Look only: water on the floor, rust, drips from connections or from the relief valve discharge pipe. Do not touch the valve, pipes or controls. Ask the age and service history.",
+        "standard": "InterNACHI: home inspectors inspect water heating equipment including the temperature/pressure-relief (TPR) valve. Look-only rule: professional practice.",
+        "tip": "Look for a label or date on the heater. It's a quick way to learn its age.",
+        "src": "Source: Beneath the Surface - Plumbing, Master Check (Water heater) · InterNACHI Standards of Practice 3.6 · Professional practice"
+      },
+      {
+        "zone": "Drainage",
+        "verb": "At the viewing",
+        "title": "Did the sinks, baths and showers drain quickly?",
+        "prompt": "Slow drains and gurgling can be an early sign of a <strong>drainage problem</strong>.",
+        "yes": "Yes, all drained well",
+        "no": "No, or I didn't test",
+        "why": "Poor drainage can point to blockages or drainage problems that are worth a plumber's look before you buy.",
+        "how": "With permission, run each sink, bath and shower briefly and watch it drain. Note any slow drainage, gurgling or smells.",
+        "standard": "InterNACHI: home inspectors check sinks, tubs and showers for functional drainage.",
+        "tip": "Listen as well as watch. Gurgling from another fixture while one drains is worth noting.",
+        "src": "Source: Beneath the Surface - Plumbing, Master Check (Slow drains) · InterNACHI Standards of Practice 3.6"
+      },
+      {
+        "zone": "Ask Before You Buy",
+        "verb": "Think back",
+        "title": "Have you asked about past leaks, bursts or water damage?",
+        "prompt": "A home's water history is <strong>evidence too</strong>, and it only takes one question.",
+        "yes": "Yes, I asked",
+        "no": "Not yet",
+        "why": "Past leaks, burst pipes or blockages can explain what you see now and point to areas that need a closer look.",
+        "how": "Ask: Any leaks, burst pipes or water damage? Where, and what was done? Any drain or sewer problems? Any insurance claims for water damage? How old is the water heater? Get answers in writing.",
+        "standard": "Professional practice. Disclosure duties differ between countries, so check with your conveyancer or agent.",
+        "tip": "Ask by email after the viewing, so the answers are in writing.",
+        "src": "Source: Beneath the Surface - Plumbing, Questions for the seller · Professional practice"
+      }
+    ]
+  },
+  "owner": {
+    "label": "Maintenance",
+    "ageRange": "Living in or looking after a home",
+    "accent": "#0F766E",
+    "accentDark": "#2D5B9A",
+    "checks": [
+      {
+        "zone": "Hidden Leaks",
+        "verb": "Try this",
+        "title": "Have you ever done the 2-hour water meter test?",
+        "prompt": "It's the simplest way to find out if water is escaping <strong>somewhere you can't see</strong>.",
+        "yes": "Yes, and it didn't move",
+        "no": "Never, or it moved",
+        "why": "If your meter moves while no water is being used, water is escaping somewhere, often in a place you can't see.",
+        "how": "Read the meter. Use no water for two hours (no taps, toilets, appliances or irrigation). Read it again. If it changed at all, you probably have a leak: call a licensed plumber to trace it.",
+        "standard": "US EPA WaterSense: check your water meter before and after a two-hour period when no water is being used. If the meter changes at all, you probably have a leak.",
+        "tip": "Do it when you go out for a couple of hours. Take a photo of the meter before and after.",
+        "src": "Source: Beneath the Surface - Plumbing, Leak Tests (Meter test) · US EPA WaterSense"
+      },
+      {
+        "zone": "Hidden Leaks",
+        "verb": "Try this",
+        "title": "Have you tried the toilet dye test?",
+        "prompt": "A leaking toilet can run silently into the bowl <strong>all day</strong>.",
+        "yes": "Yes, no colour came through",
+        "no": "Never, or colour came through",
+        "why": "Toilet leaks are common and often silent, so you won't notice them without a test.",
+        "how": "Put a few drops of food colouring in the toilet tank. Don't flush. If any colour appears in the bowl after 10 minutes, the toilet is leaking. Flush afterwards and arrange a repair.",
+        "standard": "US EPA WaterSense: if any colour shows up in the bowl after 10 minutes, you have a leak.",
+        "tip": "Test every toilet in the house on the same day. It takes 10 minutes for all of them at once.",
+        "src": "Source: Beneath the Surface - Plumbing, Leak Tests (Toilet dye test) · US EPA WaterSense"
+      },
+      {
+        "zone": "Everyday Leaks",
+        "verb": "Go check",
+        "title": "Is any tap or showerhead dripping right now?",
+        "prompt": "A tap dripping once a second wastes more than <strong>11,356 L (3,000 US gal)</strong> a year.",
+        "yes": "No drips",
+        "no": "Yes, at least one",
+        "why": "Dripping taps and showerheads waste a surprising amount of water and are usually a simple repair.",
+        "how": "Check every tap and showerhead after use. Count drips per minute and arrange a repair.",
+        "standard": "US EPA WaterSense: a tap dripping once per second can waste more than 3,000 gallons a year; a showerhead leaking 10 drips per minute more than 500 gallons a year.",
+        "tip": "Put a cup under a dripping tap for 10 minutes. Seeing the water makes the repair happen faster.",
+        "src": "Source: Beneath the Surface - Plumbing, Master Check (Dripping taps) · US EPA WaterSense"
+      },
+      {
+        "zone": "Supply",
+        "verb": "Go check",
+        "title": "Could everyone at home find the main water shut-off in a hurry?",
+        "prompt": "In a burst, <strong>every minute</strong> of running water adds to the damage.",
+        "yes": "Yes, everyone knows",
+        "no": "Only me, or nobody",
+        "why": "If nobody can find or reach the shut-off quickly, a leak does far more damage before the water is off.",
+        "how": "Find the main shut-off valve, make sure it's reachable, and label it. Show everyone in the household. If it is stiff or doesn't work, ask a licensed plumber to look.",
+        "standard": "InterNACHI: home inspectors inspect the main water supply shut-off valve and describe its location. Labelling and showing the household: professional practice.",
+        "tip": "Put a bright tag on the valve and a note with its location inside a kitchen cupboard door.",
+        "src": "Source: Beneath the Surface - Plumbing, Safe steps · InterNACHI Standards of Practice 3.6 · Professional practice"
+      },
+      {
+        "zone": "Everyday Leaks",
+        "verb": "Go check",
+        "title": "Do any cold water pipes drip with condensation?",
+        "prompt": "Not every drip is a leak. Cold pipes can <strong>sweat</strong> in humid air.",
+        "yes": "No, they're dry",
+        "no": "Yes, some drip",
+        "why": "Condensation on cold pipes can drip onto floors and into cupboards, and repeated wetting can lead to mould.",
+        "how": "Cover cold water pipes with insulation. If a pipe still drips when it's insulated or in dry weather, ask a plumber to check for a leak.",
+        "standard": "US EPA: cover cold surfaces, such as cold water pipes, with insulation.",
+        "tip": "Feel along the pipe with a dry tissue. Condensation wets it evenly; a leak wets one spot.",
+        "src": "Source: Beneath the Surface - Plumbing, Master Check (Condensation on cold pipes) · US EPA Brief Guide"
+      },
+      {
+        "zone": "Appliances",
+        "verb": "Go check",
+        "title": "When did you last look at the washing machine hoses?",
+        "prompt": "A hose you never see can fail <strong>while you're out</strong>.",
+        "yes": "Recently, they look fine",
+        "no": "Never, or can't remember",
+        "why": "Bulging, cracked or perished hoses can split, and a split hose can release a lot of water quickly.",
+        "how": "Look at the hoses behind the machine for bulges, cracks or perished rubber, and for water on the floor. Replace damaged hoses, or ask a plumber.",
+        "standard": "Professional practice.",
+        "tip": "Take a photo of the hoses once a year. It makes changes easy to spot.",
+        "src": "Source: Beneath the Surface - Plumbing, Master Check (Washing machine hoses) · Professional practice"
+      },
+      {
+        "zone": "After a Leak",
+        "verb": "Think back",
+        "title": "Last time something leaked, was it dry within 24-48 hours?",
+        "prompt": "Speed matters: wet materials dried <strong>within 24-48 hours</strong> usually don't grow mould.",
+        "yes": "Yes, dried fast",
+        "no": "It stayed wet longer",
+        "why": "Mould can start growing on materials that stay wet, so the first two days after a leak matter most.",
+        "how": "Turn off the water if needed, fix the source, then dry the area completely with airflow or a dehumidifier. Porous items like carpet may have to be thrown away if they become mouldy.",
+        "standard": "US EPA: if wet or damp materials are dried 24-48 hours after a leak or spill, in most cases mould will not grow.",
+        "tip": "Take dated photos of any leak straight away. They help with repairs and insurance.",
+        "src": "Source: Beneath the Surface - Plumbing, Safe steps · US EPA Brief Guide"
+      },
+      {
+        "zone": "Outside",
+        "verb": "Walk outside",
+        "title": "Any drips at outdoor taps, hoses or irrigation?",
+        "prompt": "A pinhole leak about 0.8 mm (1/32 in) across can waste <strong>around 23,800 L (6,300 US gal)</strong> a month.",
+        "yes": "No, all dry",
+        "no": "Yes, or not sure",
+        "why": "Outdoor leaks are easy to ignore because the water soaks away, but they can waste a lot.",
+        "how": "Check outdoor taps, hose connectors and irrigation lines for drips when on and off, and look for unexplained wet paving or soil. Repair or replace leaking parts.",
+        "standard": "US EPA WaterSense: a leak 1/32 of an inch in diameter (about the thickness of a dime) can waste about 6,300 gallons of water per month.",
+        "tip": "Check irrigation in the first minutes of a cycle. Leaks and broken heads show up straight away.",
+        "src": "Source: Beneath the Surface - Plumbing, Master Check (Outdoor taps and irrigation) · US EPA WaterSense"
+      }
+    ]
+  }
+};
+const BRIDGE_STILL = {
+  "buyer": [
+    "<strong>The full 18-area Fixture Sweep</strong>: boxed-in pipes, walls behind fixtures, dishwasher and fridge connections, outside drains and more.",
+    "<strong>21 Master Checks</strong>, a findings register with 3-photo evidence, questions for the seller and a printable report."
+  ],
+  "owner": [
+    "<strong>A built-in meter test calculator</strong> (m³, L or US gal), a toilet dye test timer and a test log.",
+    "<strong>21 Master Checks, an 18-area Fixture Sweep</strong>, 3-photo evidence, 9 cited safe steps and a printable report."
+  ]
+};
+const BEHAVIOUR_FIRST = {
+  "buyer": [0, 4, 7, 2],
+  "owner": [0, 1, 3, 6]
+};
+
+const STORE_KEY = 'snagtag-plumbing-leaks-check';
+let state = { idx:0, answers:[], started:false, product:null };
+let CHECKS = [];
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if(raw){ const s = JSON.parse(raw); if(s && Array.isArray(s.answers)) state = s; }
+  }catch(e){}
+  if(state.product && PRODUCTS[state.product]) CHECKS = PRODUCTS[state.product].checks;
+  else state.product = null;
+}
+function saveState(){
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){}
+}
+
+function hexToRgbStr(hex){
+  hex = hex.replace('#','');
+  const r = parseInt(hex.substring(0,2),16), g = parseInt(hex.substring(2,4),16), b = parseInt(hex.substring(4,6),16);
+  return r+','+g+','+b;
+}
+function applyProductTheme(key){
+  const p = PRODUCTS[key];
+  document.documentElement.style.setProperty('--accent', p.accent);
+  document.documentElement.style.setProperty('--accent-dark', p.accentDark);
+  document.documentElement.style.setProperty('--accent-rgb', hexToRgbStr(p.accent));
+}
+
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.getElementById('progressWrap').style.display = (id==='screen-check') ? 'block' : 'none';
+  window.scrollTo({top:0, behavior:'instant' in window ? 'instant' : 'auto'});
+}
+
+document.querySelectorAll('.choose-card').forEach(card=>{
+  card.addEventListener('click', ()=>{
+    const key = card.getAttribute('data-key');
+    state = { idx:0, answers:[], started:true, product:key };
+    CHECKS = PRODUCTS[key].checks;
+    applyProductTheme(key);
+    saveState();
+    renderCheck(); show('screen-check');
+  });
+});
+
+function renderCheck(){
+  const i = state.idx;
+  const c = CHECKS[i];
+  document.getElementById('chkZone').textContent = c.zone;
+  document.getElementById('chkVerb').textContent = c.verb;
+  document.getElementById('chkTitle').textContent = c.title;
+  document.getElementById('chkPrompt').innerHTML = c.prompt;
+  document.getElementById('progressText').textContent = 'Check ' + (i+1) + ' of ' + CHECKS.length;
+  document.getElementById('progressPct').textContent = Math.round(((i)/CHECKS.length)*100) + '%';
+  document.getElementById('progressFill').style.width = ((i)/CHECKS.length*100) + '%';
+
+  const opts = document.getElementById('chkOpts');
+  opts.innerHTML = '';
+  const answered = state.answers[i] !== undefined && state.answers[i] !== null;
+
+  [['yes', c.yes, true], ['no', c.no, false]].forEach(([key,label,isSafe])=>{
+    const div = document.createElement('div');
+    div.className = 'opt';
+    div.setAttribute('role','button');
+    div.setAttribute('tabindex','0');
+    const isSelected = answered && state.answers[i] === isSafe;
+    div.innerHTML = '<span class="ic">'+(isSelected ? '✓' : '')+'</span><span>'+label+'</span>';
+    if(isSelected) div.classList.add('selected', isSafe ? 'safe':'flag');
+    const pick = ()=>{
+      state.answers[i] = isSafe;
+      saveState();
+      renderCheck();
+      applyReveal(c, isSafe);
+      document.getElementById('chkNavRow').style.display = 'flex';
+      document.getElementById('chkNextBtn').textContent = (i === CHECKS.length-1) ? 'See my results →' : 'Next check →';
+    };
+    div.addEventListener('click', pick);
+    div.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); pick(); } });
+    opts.appendChild(div);
+  });
+
+  const rv = document.getElementById('chkReveal');
+  if(answered){
+    applyReveal(c, state.answers[i]);
+    document.getElementById('chkNavRow').style.display = 'flex';
+    document.getElementById('chkNextBtn').textContent = (i === CHECKS.length-1) ? 'See my results →' : 'Next check →';
+  } else {
+    rv.classList.remove('show');
+    document.getElementById('chkNavRow').style.display = 'none';
+  }
+  document.getElementById('chkBackBtn').style.visibility = (i===0) ? 'hidden' : 'visible';
+}
+
+function applyReveal(c, isSafe){
+  const rv = document.getElementById('chkReveal');
+  rv.classList.add('show');
+  rv.classList.toggle('good', !!isSafe);
+  rv.classList.toggle('bad', !isSafe);
+  const kicker = document.getElementById('revealKicker');
+  const line1 = document.getElementById('revealWhy');
+  const line2 = document.getElementById('revealHow');
+  if(isSafe){
+    kicker.textContent = '✓ Good - that\'s sorted';
+    line1.textContent = 'That matches the guidance: ' + c.standard;
+    line2.textContent = c.tip;
+  } else {
+    kicker.textContent = '⚠ Worth fixing - here\'s why';
+    line1.textContent = c.why;
+    line2.textContent = c.how;
+  }
+  document.getElementById('revealSrc').textContent = c.src;
+}
+
+document.getElementById('chkNextBtn').addEventListener('click', ()=>{
+  if(state.idx < CHECKS.length-1){
+    state.idx++; saveState(); renderCheck(); show('screen-check');
+  } else {
+    document.getElementById('progressFill').style.width = '100%';
+    renderResult(); show('screen-result');
+  }
+});
+document.getElementById('chkBackBtn').addEventListener('click', ()=>{
+  if(state.idx>0){ state.idx--; saveState(); renderCheck(); show('screen-check'); }
+});
+document.getElementById('chkChooseBtn').addEventListener('click', ()=>{
+  state = { idx:0, answers:[], started:true, product:null };
+  saveState();
+  show('screen-choose');
+});
+
+document.getElementById('startBtn').addEventListener('click', ()=>{
+  state = { idx:0, answers:[], started:true, product:null }; saveState();
+  show('screen-choose');
+});
+document.getElementById('restartBtn').addEventListener('click', ()=>{
+  state = { idx:0, answers:[], started:true, product:null }; saveState();
+  show('screen-choose');
+});
+
+function escHtml(s){return String(s).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
+
+document.getElementById('saveResultsBtn').addEventListener('click', ()=>{
+  const p = PRODUCTS[state.product];
+  const safeItems = CHECKS.filter((c,i)=>state.answers[i]===true);
+  const flagItems = CHECKS.filter((c,i)=>state.answers[i]===false);
+  const dateStr = new Date().toLocaleDateString(undefined, {year:'numeric',month:'long',day:'numeric'});
+  const rowsFlag = flagItems.map(c=>'<div class="row flag"><strong>'+escHtml(c.title.replace(/\?$/,''))+'</strong><span>'+escHtml(c.how)+'</span><em>'+escHtml(c.src)+'</em></div>').join('') || '<p style="color:#6B7A93">Nothing flagged - every check today was already sorted.</p>';
+  const rowsSafe = safeItems.map(c=>'<div class="row safe"><strong>'+escHtml(c.title.replace(/\?$/,''))+'</strong><span>'+escHtml(c.tip)+'</span></div>').join('') || '<p style="color:#6B7A93">Nothing marked sorted yet.</p>';
+  const html = '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>My Hidden Leak Check - '+dateStr+'</title>'
+    + '<style>body{font-family:"Segoe UI",system-ui,-apple-system,sans-serif;background:#F7FAFD;color:#16243F;max-width:640px;margin:0 auto;padding:32px 20px;line-height:1.6}'
+    + 'h1{font-size:1.5rem;margin:0 0 4px}p.sub{color:#6B7A93;margin:0 0 26px;font-size:14px}'
+    + 'h2{font-size:1rem;text-transform:uppercase;letter-spacing:.06em;color:#6B7A93;margin:26px 0 10px}'
+    + '.row{border-left:4px solid '+p.accent+';background:#fff;border-radius:0 10px 10px 0;padding:12px 16px;margin-bottom:10px}'
+    + '.row.safe{border-left-color:#2E7D4F}.row.flag{border-left-color:#A15C00}'
+    + '.row strong{display:block;font-size:14.5px;margin-bottom:3px}.row span{font-size:13.5px;color:#44546F;display:block}.row em{font-size:12px;color:#6B7A93;display:block;margin-top:4px}'
+    + '.cta{display:inline-block;margin-top:22px;background:linear-gradient(135deg,'+p.accent+','+p.accentDark+');color:#fff;font-weight:700;padding:13px 20px;border-radius:10px;text-decoration:none}'
+    + 'footer{margin-top:30px;padding-top:16px;border-top:1px solid #C9D6E8;font-size:11.5px;color:#6B7A93}</style></head><body>'
+    + '<h1>My Hidden Leak Check: ' + p.label + '</h1><p class="sub">Saved '+dateStr+' &middot; Beneath the Surface by The Snag Tag</p>'
+    + '<h2>Check today</h2>' + rowsFlag
+    + '<h2>Already sorted</h2>' + rowsSafe
+    + '<a class="cta" href="'+GUMROAD_URL+'" target="_blank" rel="noopener">Get the complete Plumbing &amp; Hidden Leaks tool &rarr;</a>'
+    + '<footer>Educational general guidance from The Snag Tag, a NEBOSH &amp; OSHA trained HSE professional. Not a plumbing inspection. Saved locally to your device; nothing was sent anywhere.</footer>'
+    + '</body></html>';
+  const blob = new Blob([html], {type:'text/html'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'hidden-leak-check-' + state.product + '-results.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 2000);
+});
+
+function renderResult(){
+  const p = PRODUCTS[state.product];
+  const total = CHECKS.length;
+  const safeCount = state.answers.filter(a=>a===true).length;
+  const flagCount = state.answers.filter(a=>a===false).length;
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statSafe').textContent = safeCount;
+  document.getElementById('statFlag').textContent = flagCount;
+
+  document.getElementById('resultHeadline').textContent =
+    flagCount === 0 ? total + ' for ' + total + ' - genuinely well done' :
+    flagCount <= 2 ? 'Close. A couple of things to look at' :
+    'You just found real gaps';
+
+  const zones = {};
+  CHECKS.forEach((c,i)=>{
+    if(!zones[c.zone]) zones[c.zone] = {safe:0,total:0};
+    zones[c.zone].total++;
+    if(state.answers[i]===true) zones[c.zone].safe++;
+  });
+  const zb = document.getElementById('zoneBars');
+  zb.innerHTML = '';
+  Object.keys(zones).forEach(z=>{
+    const d = zones[z];
+    const pct = Math.round((d.safe/d.total)*100);
+    const row = document.createElement('div');
+    row.className = 'zbar-row';
+    row.innerHTML = '<div class="zbar-label">'+z+'</div><div class="zbar-track"><div class="zbar-fill'+(pct<100?' partial':'')+'" style="width:'+pct+'%"></div></div><div class="zbar-count">'+d.safe+'/'+d.total+'</div>';
+    zb.appendChild(row);
+  });
+
+  const flagWrap = document.getElementById('findingsFlag');
+  const safeWrap = document.getElementById('findingsSafe');
+  flagWrap.innerHTML = ''; safeWrap.innerHTML = '';
+  if(flagCount===0){
+    flagWrap.innerHTML = '<p style="font-size:14px;color:var(--ink-soft)">Nothing flagged today - see the sorted list below.</p>';
+  }
+  CHECKS.forEach((c,i)=>{
+    const isSafe = state.answers[i]===true;
+    const div = document.createElement('div');
+    div.className = 'finding ' + (isSafe?'safe':'flag');
+    div.innerHTML = '<div class="fic">'+(isSafe?'✓':'!')+'</div><div><div class="ft">'+c.title.replace(/\?$/,'')+'</div><div class="fd">'+(isSafe? 'Sorted - keep it that way.' : c.how)+'</div></div>';
+    (isSafe ? safeWrap : flagWrap).appendChild(div);
+  });
+
+  const behaviourFirst = BEHAVIOUR_FIRST[state.product] || [];
+  let qwIndex = behaviourFirst.find(i => state.answers[i]===false);
+  if(qwIndex === undefined) qwIndex = CHECKS.findIndex((c,i)=>state.answers[i]===false);
+  if(qwIndex === undefined || qwIndex === -1) qwIndex = 1;
+  const qw = CHECKS[qwIndex];
+  document.getElementById('qwTitle').textContent = qw.title.replace(/\?$/,'');
+  document.getElementById('qwBody').textContent = qw.how;
+
+  const bridgeBody = flagCount === 0
+    ? 'You\'re sorted on all ' + total + ' of today\'s checks. The full Beneath the Surface Plumbing & Hidden Leaks tool goes much further: an 18-area fixture sweep, a meter test calculator, a findings register with photo evidence and a printable report for your plumber, landlord or seller.'
+    : 'Today\'s check found ' + flagCount + ' of the most commonly missed leak and plumbing gaps. The full Beneath the Surface Plumbing & Hidden Leaks tool helps you record each one properly, with leak tests, photo evidence and a printable report, so a plumber knows exactly where to start.';
+  document.getElementById('bridgeBody').textContent = bridgeBody;
+
+  const stillItems = BRIDGE_STILL[state.product] || [];
+  document.getElementById('bridgeStillList').innerHTML = stillItems.map(li=>'<li>'+li+'</li>').join('');
+
+  document.getElementById('proBtn').href = GUMROAD_URL;
+  document.getElementById('proBtn').textContent = 'Get the Plumbing & Hidden Leaks tool →';
+}
+
+function applyMode(m){
+  document.body.setAttribute('data-mode', m);
+  document.getElementById('modeToggle').textContent = m==='dark' ? '☀️' : '🌙';
+  try{ localStorage.setItem(STORE_KEY+'-mode', m); }catch(e){}
+}
+document.getElementById('modeToggle').addEventListener('click', ()=>{
+  applyMode(document.body.getAttribute('data-mode')==='dark' ? 'light' : 'dark');
+});
+(function initMode(){
+  let m = 'light';
+  try{ m = localStorage.getItem(STORE_KEY+'-mode') || 'light'; }catch(e){}
+  applyMode(m);
+})();
+
+loadState();
+if(state.product) applyProductTheme(state.product);
+if(state.started && state.product && state.idx < CHECKS.length && !(state.answers.length===CHECKS.length && state.answers.every(a=>a!==undefined && a!==null))){
+  renderCheck(); show('screen-check');
+} else if(state.started && state.product && state.answers.length===CHECKS.length && state.answers.every(a=>a!==undefined && a!==null)){
+  renderResult(); show('screen-result');
+} else if(state.started && !state.product){
+  show('screen-choose');
+}
+</script>
+</body>
+</html>
